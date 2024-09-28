@@ -169,6 +169,28 @@ void RichString_appendChr(RichString* this, int attrs, char c, int count) {
    }
 }
 
+inline void RichString_setAttrn_preserveBold(RichString* this, int attrs, int start, int finish) {
+   cchar_t* ch = this->chptr + start;
+   finish = CLAMP(finish, 0, this->chlen - 1);
+   for (int i = start; i <= finish; i++) {
+      ch->attr = (ch->attr & A_BOLD) ? (attrs | A_BOLD) : attrs;
+      ch++;
+   }
+}
+
+void RichString_setAttrn_preserveBold(RichString* this, int attrs, int start, int finish) {
+   chtype* ch = this->chptr + start;
+   finish = CLAMP(finish, 0, this->chlen - 1);
+   for (int i = start; i <= finish; i++) {
+      *ch = (*ch & 0xff) | attrs | (*ch & A_BOLD);
+      ch++;
+   }
+}
+
+void RichString_setAttr_preserveBold(RichString* this, int attrs) {
+   RichString_setAttrn_preserveBold(this, attrs, 0, this->chlen - 1);
+}
+
 int RichString_findChar(const RichString* this, char c, int start) {
    const wchar_t wc = btowc(c);
    const cchar_t* ch = this->chptr + start;
