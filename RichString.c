@@ -8,6 +8,8 @@ in the source distribution for its full text.
 #include "config.h" // IWYU pragma: keep
 
 #include "RichString.h"
+#include "ProvideCurses.h"
+#include "CRT.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -17,9 +19,14 @@ in the source distribution for its full text.
 
 #include "Macros.h"
 #include "XUtils.h"
+#include <stdio.h> // For printf
 
 
 #define charBytes(n) (sizeof(CharType) * (n))
+void printRichString(RichString* rs);
+void printAttrs(int attrs);
+void printRichStringComparison(cchar_t* before, cchar_t* after, int length, int attrs);
+//void printRichStringComparison(RichString* before, RichString* after);
 
 static void RichString_extendLen(RichString* this, int len) {
    if (this->chptr == this->chstr) {
@@ -169,16 +176,125 @@ void RichString_appendChr(RichString* this, int attrs, char c, int count) {
    }
 }
 
-void RichString_setAttrn_preserveBold(RichString* this, int attrs, int start, int finish) {
-   cchar_t* ch = this->chptr + start;
-   finish = CLAMP(finish, 0, this->chlen - 1);
-   for (int i = start; i <= finish; i++) {
-      ch->attr = (ch->attr & A_BOLD) ? ((unsigned int)attrs | A_BOLD) : (unsigned int)attrs;
-      ch++;
-   }
+void printRichStringComparison(cchar_t* before, cchar_t* after, int length, int attrs) {
+    attr_t terminal_attrs;
+    short terminal_color_pair;
+
+    // Get the current terminal attributes and color pair
+    attr_get(&terminal_attrs, &terminal_color_pair, NULL);
+
+    // Extract the foreground and background colors from the passed attrs
+    int passed_color_pair_number = PAIR_NUMBER(attrs);
+    short passed_fg_color = -1, passed_bg_color = -1;
+    if (passed_color_pair_number != 0) {
+        pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
+    }
+
+    // Print general information
+    fprintf(stderr, "\nAttrs passed: 0x%x\n", attrs);
+    fprintf(stderr, "Terminal attributes: 0x%lx, Color pair: %d\n", (unsigned long)terminal_attrs, terminal_color_pair);
+    fprintf(stderr, "Passed attrs: FG color: %d, BG color: %d\n", passed_fg_color, passed_bg_color);
+    fprintf(stderr, "Char\tBefore FG\tBefore BG\t|\tAfter FG\tAfter BG\t|\tChanged Bits\n");
+
+    // Iterate through each character and print the comparison of foreground/background colors
+    for (int i = 0; i < length; i++) {
+        // Extract foreground and background from 'before'
+        int before_pair_number = PAIR_NUMBER(before[i].attr);
+        short before_fg_color = -1, before_bg_color = -1;
+        if (before_pair_number != 0) {
+            pair_content(before_pair_number, &before_fg_color, &before_bg_color);
+        }
+
+        // Extract foreground and background from 'after'
+        int after_pair_number = PAIR_NUMBER(after[i].attr);
+        short after_fg_color = -1, after_bg_color = -1;
+        if (after_pair_number != 0) {
+            pair_content(after_pair_number, &after_fg_color, &after_bg_color);
+        }
+
+        // Isolate changed bits between 'before' and 'after'
+        unsigned int changed_bits = before[i].attr ^ after[i].attr;
+
+        // Print comparison for this character
+        fprintf(stderr, "Char %d: '%lc', FG: %d, BG: %d |\tFG: %d, BG: %d |\t0x%x\n",
+                i, before[i].chars[0], before_fg_color, before_bg_color,
+                after_fg_color, after_bg_color, changed_bits);
+    }
 }
 
+void RichString_setAttrn_preserveBold(RichString* this, int attrs, int start, int finish) {
+    finish = CLAMP(finish, 0, this->chlen - 1);
+    int length = finish - start + 1;
+
+    // Store the initial state of the attributes in a temporary array
+    cchar_t before[length];
+    memcpy(before, this->chptr + start, length * sizeof(cchar_t));
+
+    // Extract color pair number from attrs
+    int color_pair_number = PAIR_NUMBER(attrs);
+
+    // Get the background color of the color pair (we will only modify the background)
+    short fg_color, bg_color;
+    if (color_pair_number != 0) {
+        pair_content(color_pair_number, &fg_color, &bg_color);
+    } else {
+        bg_color = -1;  // No background color set, use a default
+    }
+
+    // Apply the modifications to preserve the original attributes but change the background color
+    cchar_t* ch = this->chptr + start;
+    finish = CLAMP(finish, 0, this->chlen - 1);
+
+    for (int i = start; i <= finish; i++) {
+        // Get the existing color pair and attributes
+        int existing_pair_number = PAIR_NUMBER(ch->attr);
+        short existing_fg_color, existing_bg_color;
+
+        if (existing_pair_number != 0) {
+            pair_content(existing_pair_number, &existing_fg_color, &existing_bg_color);
+        } else {
+            existing_fg_color = -1;
+            existing_bg_color = -1;
+        }
+
+        // Reinitialize color pair with new background and original foreground
+        if (existing_fg_color != -1 && bg_color != -1) {
+            int new_color_pair_number = existing_fg_color * COLORS + bg_color;  // Create new color pair index
+            init_pair(new_color_pair_number, existing_fg_color, bg_color);
+
+            // Update the attributes, preserving bold
+            ch->attr = (ch->attr & A_BOLD) ? (COLOR_PAIR(new_color_pair_number) | A_BOLD) : COLOR_PAIR(new_color_pair_number);
+        }
+
+        ch++;
+    }
+
+    // Print the comparison of before and after modifications, including passed attrs
+    fprintf(stderr, "Before and After modification comparison with changed bits:\n");
+    printRichStringComparison(before, this->chptr + start, length, attrs);
+}
+
+
+
+
+void printRichString(RichString* rs) {
+    fprintf(stderr, "RichString:\n");
+    fprintf(stderr, "chlen: %d\n", rs->chlen);
+    fprintf(stderr, "highlightAttr: %d\n", rs->highlightAttr);
+    fprintf(stderr, "chptr address: %p\n", rs->chptr); // Print address of chptr
+
+    // Print each character in chstr with attributes
+    for (int i = 0; i < rs->chlen; i++) {
+        fprintf(stderr, "Char %d: '%lc', attr: 0x%x\n", i, rs->chptr[i].chars[0], rs->chptr[i].attr);
+    }
+}
+void printAttrs(int attrs) {
+    fprintf(stderr, "Attributes: 0x%x\n", attrs); // Print in hexadecimal
+}
+
+
 void RichString_setAttr_preserveBold(RichString* this, int attrs) {
+//	printRichString(this);
    RichString_setAttrn_preserveBold(this, attrs, 0, this->chlen - 1);
 }
 
