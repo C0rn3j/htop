@@ -20,10 +20,6 @@ in the source distribution for its full text.
 
 
 #define charBytes(n) (sizeof(CharType) * (n))
-void printRichString(RichString* rs);
-void printAttrs(int attrs);
-void printRichStringComparison(cchar_t* before, cchar_t* after, int length, int attrs);
-//void printRichStringComparison(RichString* before, RichString* after);
 
 static void RichString_extendLen(RichString* this, int len) {
    if (this->chptr == this->chstr) {
@@ -173,65 +169,19 @@ void RichString_appendChr(RichString* this, int attrs, char c, int count) {
    }
 }
 
-void printRichStringComparison(cchar_t* before, cchar_t* after, int length, int attrs) {
-    attr_t terminal_attrs;
-    short terminal_color_pair;
-
-    // Get the current terminal attributes and color pair
-    attr_get(&terminal_attrs, &terminal_color_pair, NULL);
-
-    // Extract the foreground and background colors from the passed attrs
-    int passed_color_pair_number = PAIR_NUMBER(attrs);
-    short passed_fg_color = -1, passed_bg_color = -1;
-    if (passed_color_pair_number != 0) {
-        pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
-    }
-
-    // Print general information
-    fprintf(stderr, "\nAttrs passed: 0x%x\n", attrs);
-    fprintf(stderr, "Terminal attributes: 0x%lx, Color pair: %d\n", (unsigned long)terminal_attrs, terminal_color_pair);
-    fprintf(stderr, "Passed attrs: FG color: %d, BG color: %d\n", passed_fg_color, passed_bg_color);
-    fprintf(stderr, "Char\tBefore FG\tBefore BG\t|\tAfter FG\tAfter BG\t|\tChanged Bits\n");
-
-    // Iterate through each character and print the comparison of foreground/background colors
-    for (int i = 0; i < length; i++) {
-        // Extract foreground and background from 'before'
-        int before_pair_number = PAIR_NUMBER(before[i].attr);
-        short before_fg_color = -1, before_bg_color = -1;
-        if (before_pair_number != 0) {
-            pair_content(before_pair_number, &before_fg_color, &before_bg_color);
-        }
-
-        // Extract foreground and background from 'after'
-        int after_pair_number = PAIR_NUMBER(after[i].attr);
-        short after_fg_color = -1, after_bg_color = -1;
-        if (after_pair_number != 0) {
-            pair_content(after_pair_number, &after_fg_color, &after_bg_color);
-        }
-
-        // Isolate changed bits between 'before' and 'after'
-        unsigned int changed_bits = before[i].attr ^ after[i].attr;
-
-        // Print comparison for this character
-        fprintf(stderr, "Char %d: '%lc', FG: %d, BG: %d |\tFG: %d, BG: %d |\t0x%x\n",
-                i, before[i].chars[0], before_fg_color, before_bg_color,
-                after_fg_color, after_bg_color, changed_bits);
-    }
-}
-
 void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int start, int finish) {
-    // Extract the foreground and background colors from the passed attrs
-    int passed_color_pair_number = PAIR_NUMBER(attrs);
-    short passed_fg_color = -1, passed_bg_color = -1;
-    if (passed_color_pair_number != 0) {
-        pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
-    }
+   // Extract the foreground and background colors from the passed attrs
+   int passed_color_pair_number = PAIR_NUMBER(attrs);
+   short passed_fg_color = -1, passed_bg_color = -1;
+   if (passed_color_pair_number != 0) {
+      pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
+   }
 
-    finish = CLAMP(finish, 0, this->chlen - 1);
-    int length = finish - start + 1;
-    // Store the initial state of the attributes in a temporary array
-    cchar_t before[length];
-    memcpy(before, this->chptr + start, length * sizeof(cchar_t));
+   finish = CLAMP(finish, 0, this->chlen - 1);
+   int length = finish - start + 1;
+   // Store the initial state of the attributes in a temporary array
+   cchar_t before[length];
+   memcpy(before, this->chptr + start, length * sizeof(cchar_t));
 
    cchar_t* ch = this->chptr + start;
    for (int i = start; i <= finish; i++) {
@@ -239,43 +189,18 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
       int pairNum = PAIR_NUMBER(ch->attr);
       short before_fg_color = -1, before_bg_color = -1;
       if (pairNum != 0) {
-          pair_content(pairNum, &before_fg_color, &before_bg_color);
+         pair_content(pairNum, &before_fg_color, &before_bg_color);
       }
 
-//      fprintf(stderr, "PAIRNUM: %d\n", pairNum);
-      // When text color matches higlight, it is not obvious we are higlighting, TODO
-			int attrToPass = A_STANDOUT;
+      // When text color matches higlight, it is not obvious we are higlighting, we at least set italics TODO
+      int attrToPass = A_STANDOUT;
       if (before_fg_color == passed_bg_color) {
-          attrToPass = attrToPass | A_ITALIC;
+         attrToPass = attrToPass | A_ITALIC;
       }
       ch->attr = (ch->attr & A_BOLD || pairNum != 0) ? (ch->attr | attrToPass) : (unsigned int)attrs;
       ch++;
    }
-
-	     // Print the comparison of before and after modifications, including passed attrs
-    fprintf(stderr, "Before and After modification comparison with changed bits:\n");
-    printRichStringComparison(before, this->chptr + start, length, attrs);
-
 }
-
-
-
-
-void printRichString(RichString* rs) {
-    fprintf(stderr, "RichString:\n");
-    fprintf(stderr, "chlen: %d\n", rs->chlen);
-    fprintf(stderr, "highlightAttr: %d\n", rs->highlightAttr);
-    fprintf(stderr, "chptr address: %p\n", rs->chptr); // Print address of chptr
-
-    // Print each character in chstr with attributes
-    for (int i = 0; i < rs->chlen; i++) {
-        fprintf(stderr, "Char %d: '%lc', attr: 0x%x\n", i, rs->chptr[i].chars[0], rs->chptr[i].attr);
-    }
-}
-void printAttrs(int attrs) {
-    fprintf(stderr, "Attributes: 0x%x\n", attrs); // Print in hexadecimal
-}
-
 
 void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
    RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
