@@ -170,34 +170,33 @@ void RichString_appendChr(RichString* this, int attrs, char c, int count) {
 }
 
 void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int start, int finish) {
-   // Extract the foreground and background colors from the passed attrs
+   finish = CLAMP(finish, 0, this->chlen - 1);
+
+   // Extract the foreground and background color indexes from the passed attrs
    int passed_color_pair_number = PAIR_NUMBER(attrs);
    short passed_fg_color = -1, passed_bg_color = -1;
    if (passed_color_pair_number != 0) {
       pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
    }
 
-   finish = CLAMP(finish, 0, this->chlen - 1);
-   int length = finish - start + 1;
-   // Store the initial state of the attributes in a temporary array
-   cchar_t before[length];
-   memcpy(before, this->chptr + start, length * sizeof(cchar_t));
-
    cchar_t* ch = this->chptr + start;
    for (int i = start; i <= finish; i++) {
-      // Extract foreground and background from 'before'
-      int pairNum = PAIR_NUMBER(ch->attr);
+      // Extract foreground and background color indexes from the current char
+      int currentCharPairNum = PAIR_NUMBER(ch->attr);
       short before_fg_color = -1, before_bg_color = -1;
-      if (pairNum != 0) {
-         pair_content(pairNum, &before_fg_color, &before_bg_color);
+      if (currentCharPairNum != 0) {
+         pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
       }
 
-      // When text color matches higlight, it is not obvious we are higlighting, we at least set italics TODO
+      // When text color matches higlight, the resulting STANDOUT is the same as on default text, so we at least set italics TODO
       int attrToPass = A_STANDOUT;
       if (before_fg_color == passed_bg_color) {
          attrToPass = attrToPass | A_ITALIC;
       }
-      ch->attr = (ch->attr & A_BOLD || pairNum != 0) ? (ch->attr | attrToPass) : (unsigned int)attrs;
+      // If current char has is BOLD or its ColorPair Index is not the default 0,
+      //    apply our own attrToPass with STANDOUT + optionally ITALICS,
+      //    instead of the passed attrs, which has the BG highlight color
+      ch->attr = (ch->attr & A_BOLD || currentCharPairNum != 0) ? (ch->attr | attrToPass) : (unsigned int)attrs;
       ch++;
    }
 }
