@@ -223,55 +223,42 @@ void printRichStringComparison(cchar_t* before, cchar_t* after, int length, int 
 }
 
 void RichString_setAttrn_preserveBold(RichString* this, int attrs, int start, int finish) {
+    // Extract the foreground and background colors from the passed attrs
+    int passed_color_pair_number = PAIR_NUMBER(attrs);
+    short passed_fg_color = -1, passed_bg_color = -1;
+    if (passed_color_pair_number != 0) {
+        pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
+    }
+
     finish = CLAMP(finish, 0, this->chlen - 1);
     int length = finish - start + 1;
-
     // Store the initial state of the attributes in a temporary array
     cchar_t before[length];
     memcpy(before, this->chptr + start, length * sizeof(cchar_t));
 
-    // Extract color pair number from attrs
-    int color_pair_number = PAIR_NUMBER(attrs);
+   cchar_t* ch = this->chptr + start;
+   for (int i = start; i <= finish; i++) {
+      // Extract foreground and background from 'before'
+      int pairNum = PAIR_NUMBER(ch->attr);
+      short before_fg_color = -1, before_bg_color = -1;
+      if (pairNum != 0) {
+          pair_content(pairNum, &before_fg_color, &before_bg_color);
+      }
 
-    // Get the background color of the color pair (we will only modify the background)
-    short fg_color, bg_color;
-    if (color_pair_number != 0) {
-        pair_content(color_pair_number, &fg_color, &bg_color);
-    } else {
-        bg_color = -1;  // No background color set, use a default
-    }
+//      fprintf(stderr, "PAIRNUM: %d\n", pairNum);
+      // When text color matches higlight, it is not obvious we are higlighting, TODO
+			int attrToPass = A_STANDOUT;
+      if (before_fg_color == passed_bg_color) {
+          attrToPass = attrToPass | A_ITALIC;
+      }
+      ch->attr = (ch->attr & A_BOLD || pairNum != 0) ? (ch->attr | attrToPass) : (unsigned int)attrs;
+      ch++;
+   }
 
-    // Apply the modifications to preserve the original attributes but change the background color
-    cchar_t* ch = this->chptr + start;
-    finish = CLAMP(finish, 0, this->chlen - 1);
-
-    for (int i = start; i <= finish; i++) {
-        // Get the existing color pair and attributes
-        int existing_pair_number = PAIR_NUMBER(ch->attr);
-        short existing_fg_color, existing_bg_color;
-
-        if (existing_pair_number != 0) {
-            pair_content(existing_pair_number, &existing_fg_color, &existing_bg_color);
-        } else {
-            existing_fg_color = -1;
-            existing_bg_color = -1;
-        }
-
-        // Reinitialize color pair with new background and original foreground
-        if (existing_fg_color != -1 && bg_color != -1) {
-            int new_color_pair_number = existing_fg_color * COLORS + bg_color;  // Create new color pair index
-            init_pair(new_color_pair_number, existing_fg_color, bg_color);
-
-            // Update the attributes, preserving bold
-            ch->attr = (ch->attr & A_BOLD) ? (COLOR_PAIR(new_color_pair_number) | A_BOLD) : COLOR_PAIR(new_color_pair_number);
-        }
-
-        ch++;
-    }
-
-    // Print the comparison of before and after modifications, including passed attrs
+	     // Print the comparison of before and after modifications, including passed attrs
     fprintf(stderr, "Before and After modification comparison with changed bits:\n");
     printRichStringComparison(before, this->chptr + start, length, attrs);
+
 }
 
 
