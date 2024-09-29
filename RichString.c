@@ -8,8 +8,6 @@ in the source distribution for its full text.
 #include "config.h" // IWYU pragma: keep
 
 #include "RichString.h"
-#include "ProvideCurses.h"
-#include "CRT.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -19,7 +17,6 @@ in the source distribution for its full text.
 
 #include "Macros.h"
 #include "XUtils.h"
-#include <stdio.h> // For printf
 
 
 #define charBytes(n) (sizeof(CharType) * (n))
@@ -222,7 +219,7 @@ void printRichStringComparison(cchar_t* before, cchar_t* after, int length, int 
     }
 }
 
-void RichString_setAttrn_preserveBold(RichString* this, int attrs, int start, int finish) {
+void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int start, int finish) {
     // Extract the foreground and background colors from the passed attrs
     int passed_color_pair_number = PAIR_NUMBER(attrs);
     short passed_fg_color = -1, passed_bg_color = -1;
@@ -280,9 +277,8 @@ void printAttrs(int attrs) {
 }
 
 
-void RichString_setAttr_preserveBold(RichString* this, int attrs) {
-//	printRichString(this);
-   RichString_setAttrn_preserveBold(this, attrs, 0, this->chlen - 1);
+void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
+   RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
 }
 
 int RichString_findChar(const RichString* this, char c, int start) {
