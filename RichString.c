@@ -277,9 +277,9 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
       // If current char is not a space and its ColorPair Index is not the default 0,
       //    apply our own attrToPass with STANDOUT + optionally ITALICS,
       //    instead of the passed attrs, which has the BG highlight color
-      *ch |= (ch != L' ' && currentCharPairNum != 0)
-            ? attrToPass
-            : (unsigned int)attrs;
+      *ch = ((*ch & A_CHARTEXT) != L' ' && currentCharPairNum != 0)
+            ? *ch | attrToPass
+            : (*ch & A_CHARTEXT) | (unsigned int)attrs;
       ch++;
    }
 }
