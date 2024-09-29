@@ -164,7 +164,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
    finish = CLAMP(finish, 0, this->chlen - 1);
 
    // Extract the foreground and background color indexes from the passed attrs
-   int passed_color_pair_number = PAIR_NUMBER(attrs);
+   short passed_color_pair_number = PAIR_NUMBER(attrs);
    short passed_fg_color = -1, passed_bg_color = -1;
    if (passed_color_pair_number != 0) {
       pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
@@ -253,7 +253,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
    finish = CLAMP(finish, 0, this->chlen - 1);
 
    // Extract the foreground and background color indexes from the passed attrs
-   int passed_color_pair_number = PAIR_NUMBER(attrs);
+   short passed_color_pair_number = PAIR_NUMBER(attrs);
    short passed_fg_color = -1, passed_bg_color = -1;
    if (passed_color_pair_number != 0) {
       pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
