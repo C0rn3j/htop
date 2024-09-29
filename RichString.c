@@ -259,10 +259,10 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
       pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
    }
 
-   const chtype* ch = this->chptr + start;
+   chtype* ch = this->chptr + start;
    for (int i = start; i <= finish; i++) {
       // Extract foreground and background color indexes from the current char
-      short currentCharPairNum = (short)PAIR_NUMBER(ch.attr);
+      short currentCharPairNum = (short)PAIR_NUMBER(*ch);
       short before_fg_color = -1, before_bg_color = -1;
       if (currentCharPairNum != 0) {
          pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
@@ -277,9 +277,10 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
       // If current char is not a space and its ColorPair Index is not the default 0,
       //    apply our own attrToPass with STANDOUT + optionally ITALICS,
       //    instead of the passed attrs, which has the BG highlight color
-      ch = (ch != L' ' && currentCharPairNum != 0)
-            ? (ch.attr | attrToPass)
+      *ch |= (ch != L' ' && currentCharPairNum != 0)
+            ? attrToPass
             : (unsigned int)attrs;
+      ch++;
    }
 }
 
