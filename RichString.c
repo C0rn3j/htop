@@ -173,7 +173,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
    cchar_t* ch = this->chptr + start;
    for (int i = start; i <= finish; i++) {
       // Extract foreground and background color indexes from the current char
-      int currentCharPairNum = PAIR_NUMBER(ch->attr);
+      short currentCharPairNum = PAIR_NUMBER(ch->attr);
       short before_fg_color = -1, before_bg_color = -1;
       if (currentCharPairNum != 0) {
          pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
@@ -264,7 +264,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
       int current_attrs = this->chptr[i] & ~A_CHARTEXT;  // Extract attributes
 
       // Extract foreground and background color indexes from the current char
-      int currentCharPairNum = PAIR_NUMBER(current_attrs);
+      short currentCharPairNum = PAIR_NUMBER(current_attrs);
       short before_fg_color = -1, before_bg_color = -1;
       if (currentCharPairNum != 0) {
          pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
