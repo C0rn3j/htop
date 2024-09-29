@@ -188,15 +188,16 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
          pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
       }
 
-      // When text color matches higlight, the resulting STANDOUT is the same as on default text, so we at least set italics TODO
+      // TODO: When text color matches higlight, the resulting STANDOUT is the same as on default text,
+      //       so we at least set italics
       int attrToPass = A_STANDOUT;
       if (before_fg_color == passed_bg_color) {
          attrToPass = attrToPass | A_ITALIC;
       }
-      // If current char has is BOLD or its ColorPair Index is not the default 0,
+      // If current char is not a space, has BOLD or its ColorPair Index is not the default 0,
       //    apply our own attrToPass with STANDOUT + optionally ITALICS,
       //    instead of the passed attrs, which has the BG highlight color
-      ch->attr = (ch->attr & A_BOLD || currentCharPairNum != 0) ? (ch->attr | attrToPass) : (unsigned int)attrs;
+      ch->attr = (ch->chars[0] != L' ' && (ch->attr & A_BOLD || currentCharPairNum != 0)) ? (ch->attr | attrToPass) : (unsigned int)attrs;
       ch++;
    }
 }
