@@ -62,6 +62,10 @@ void RichString_rewind(RichString* this, int count) {
    RichString_setLen(this, this->chlen - count);
 }
 
+void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
+   RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
+}
+
 #ifdef HAVE_LIBNCURSESW
 
 static size_t mbstowcs_nonfatal(wchar_t* restrict dest, const char* restrict src, size_t n) {
@@ -195,10 +199,6 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
    }
 }
 
-void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
-   RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
-}
-
 void RichString_appendChr(RichString* this, int attrs, char c, int count) {
    int from = this->chlen;
    int newLen = from + count;
@@ -281,10 +281,6 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
             ? (ch.attr | attrToPass)
             : (unsigned int)attrs;
    }
-}
-
-void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
-   RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
 }
 
 void RichString_appendChr(RichString* this, int attrs, char c, int count) {
