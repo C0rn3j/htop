@@ -181,7 +181,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
 
       // TODO: When text color matches higlight, the resulting STANDOUT is the same as on default text,
       //       so we at least set italics
-      int attrToPass = A_STANDOUT;
+      chtype attrToPass = A_STANDOUT;
       if (before_fg_color == passed_bg_color) {
          attrToPass |= A_ITALIC;
       }
@@ -272,7 +272,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
 
       // TODO: When text color matches higlight, the resulting STANDOUT is the same as on default text,
       //       so we at least set italics
-      int attrToPass = A_STANDOUT;
+      chtype attrToPass = A_STANDOUT;
       if (before_fg_color == passed_bg_color) {
          attrToPass |= A_ITALIC;
       }
