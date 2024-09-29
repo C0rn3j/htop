@@ -160,15 +160,6 @@ inline void RichString_setAttrn(RichString* this, int attrs, int start, int char
    }
 }
 
-void RichString_appendChr(RichString* this, int attrs, char c, int count) {
-   int from = this->chlen;
-   int newLen = from + count;
-   RichString_setLen(this, newLen);
-   for (int i = from; i < newLen; i++) {
-      this->chptr[i] = (CharType) { .attr = attrs, .chars = { c, 0 } };
-   }
-}
-
 void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int start, int finish) {
    finish = CLAMP(finish, 0, this->chlen - 1);
 
@@ -192,18 +183,29 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
       //       so we at least set italics
       int attrToPass = A_STANDOUT;
       if (before_fg_color == passed_bg_color) {
-         attrToPass = attrToPass | A_ITALIC;
+         attrToPass |= A_ITALIC;
       }
       // If current char is not a space and its ColorPair Index is not the default 0,
       //    apply our own attrToPass with STANDOUT + optionally ITALICS,
       //    instead of the passed attrs, which has the BG highlight color
-      ch->attr = (ch->chars[0] != L' ' && currentCharPairNum != 0) ? (ch->attr | attrToPass) : (unsigned int)attrs;
+      ch->attr = (ch->chars[0] != L' ' && currentCharPairNum != 0)
+                  ? (ch->attr | attrToPass)
+                  : (unsigned int)attrs;
       ch++;
    }
 }
 
 void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
    RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
+}
+
+void RichString_appendChr(RichString* this, int attrs, char c, int count) {
+   int from = this->chlen;
+   int newLen = from + count;
+   RichString_setLen(this, newLen);
+   for (int i = from; i < newLen; i++) {
+      this->chptr[i] = (CharType) { .attr = attrs, .chars = { c, 0 } };
+   }
 }
 
 int RichString_findChar(const RichString* this, char c, int start) {
@@ -245,6 +247,47 @@ void RichString_setAttrn(RichString* this, int attrs, int start, int charcount) 
    for (int i = start; i < end; i++) {
       this->chptr[i] = (this->chptr[i] & 0xff) | attrs;
    }
+}
+
+void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int start, int finish) {
+   finish = CLAMP(finish, 0, this->chlen - 1);
+
+   // Extract the foreground and background color indexes from the passed attrs
+   int passed_color_pair_number = PAIR_NUMBER(attrs);
+   short passed_fg_color = -1, passed_bg_color = -1;
+   if (passed_color_pair_number != 0) {
+      pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
+   }
+
+   for (int i = start; i <= finish; i++) {
+      char ch = this->chptr[i] & A_CHARTEXT;  // Extract character
+      int current_attrs = this->chptr[i] & ~A_CHARTEXT;  // Extract attributes
+
+      // Extract foreground and background color indexes from the current char
+      int currentCharPairNum = PAIR_NUMBER(current_attrs);
+      short before_fg_color = -1, before_bg_color = -1;
+      if (currentCharPairNum != 0) {
+         pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
+      }
+
+      // TODO: When text color matches higlight, the resulting STANDOUT is the same as on default text,
+      //       so we at least set italics
+      int attrToPass = A_STANDOUT;
+      if (before_fg_color == passed_bg_color) {
+         attrToPass |= A_ITALIC;
+      }
+
+      // If current char is not a space and its ColorPair Index is not the default 0,
+      //    apply our own attrToPass with STANDOUT + optionally ITALICS,
+      //    instead of the passed attrs, which has the BG highlight color
+      this->chptr[i] = (ch != ' ' && currentCharPairNum != 0)
+                        ? (ch | (current_attrs | attrToPass))
+                        : (ch | attrs);
+   }
+}
+
+void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
+   RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
 }
 
 void RichString_appendChr(RichString* this, int attrs, char c, int count) {
