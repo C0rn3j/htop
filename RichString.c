@@ -164,7 +164,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
    finish = CLAMP(finish, 0, this->chlen - 1);
 
    // Extract the foreground and background color indexes from the passed attrs
-   short passed_color_pair_number = PAIR_NUMBER(attrs);
+   short passed_color_pair_number = (short)PAIR_NUMBER(attrs);
    short passed_fg_color = -1, passed_bg_color = -1;
    if (passed_color_pair_number != 0) {
       pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
@@ -173,7 +173,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
    cchar_t* ch = this->chptr + start;
    for (int i = start; i <= finish; i++) {
       // Extract foreground and background color indexes from the current char
-      short currentCharPairNum = PAIR_NUMBER(ch->attr);
+      short currentCharPairNum = (short)PAIR_NUMBER(ch->attr);
       short before_fg_color = -1, before_bg_color = -1;
       if (currentCharPairNum != 0) {
          pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
@@ -253,7 +253,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
    finish = CLAMP(finish, 0, this->chlen - 1);
 
    // Extract the foreground and background color indexes from the passed attrs
-   short passed_color_pair_number = PAIR_NUMBER(attrs);
+   short passed_color_pair_number = (short)PAIR_NUMBER(attrs);
    short passed_fg_color = -1, passed_bg_color = -1;
    if (passed_color_pair_number != 0) {
       pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
@@ -264,7 +264,7 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int s
       int current_attrs = this->chptr[i] & ~A_CHARTEXT;  // Extract attributes
 
       // Extract foreground and background color indexes from the current char
-      short currentCharPairNum = PAIR_NUMBER(current_attrs);
+      short currentCharPairNum = (short)PAIR_NUMBER(current_attrs);
       short before_fg_color = -1, before_bg_color = -1;
       if (currentCharPairNum != 0) {
          pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
