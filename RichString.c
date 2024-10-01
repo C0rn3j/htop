@@ -238,10 +238,11 @@ void RichString_setAttrn_preserveWithStandout(RichString* this, attr_t attrs, in
       //    apply our own attrToPass with STANDOUT + optionally ITALICS,
       //    instead of the passed pair, which has the BG highlight color
 //      ch->attr = attrs;
-      ch->ext_color = currentCharPairNum != 0
-                  ?  colorBGOverride
-                  :  colorBGOverride;
-//      ch->attr = attrs;
+      ch->ext_color = colorBGOverride;
+			// Bold same BG and FG, looks bad, will need to fix text/bg colors instead
+			if (after_fg_color == after_bg_color) {
+				ch->attr |= A_BOLD;
+			}
       //ch->attr = (ch->chars[0] != L' ' && currentCharPairNum != 0)
       //            ? (ch->attr | A_STANDOUT)
       //            : (unsigned int)pair;

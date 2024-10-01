@@ -1194,8 +1194,8 @@ void CRT_enableDelay(void) {
 
 void CRT_setColors(int colorScheme) {
    CRT_colorScheme = colorScheme;
-   for (short int i = 0; i <= 8; i++) {
-      for (short int j = 0; j <= 8; j++) {
+   for (short int i = 0; i < 8; i++) {
+      for (short int j = 0; j < 8; j++) {
          if (ColorIndex(i, j) != ColorIndexGrayBlack && ColorIndex(i, j) != ColorIndexWhiteDefault) {
             short int bg = (colorScheme != COLORSCHEME_BLACKNIGHT) && (j == 0) ? -1 : j;
             init_pair(ColorIndex(i, j), i, bg);
