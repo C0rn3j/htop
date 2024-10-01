@@ -288,15 +288,15 @@ void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelect
             item.highlightAttr = selectionColor;
          }
          if (item.highlightAttr) {
-            attrset(item.highlightAttr);
-            RichString_setAttr_preserveWithStandout(&item, item.highlightAttr);
+            attr_set(0, PAIR_NUMBER(item.highlightAttr), NULL);
+            RichString_setAttr_preserveWithStandout(&item, item.highlightAttr & ~A_COLOR, PAIR_NUMBER(item.highlightAttr), NULL);
             this->selectedLen = itemLen;
          }
          mvhline(y + line, x, ' ', this->w);
          if (amt > 0)
             RichString_printoffnVal(item, y + line, x, scrollH, amt);
          if (item.highlightAttr)
-            attrset(CRT_colors[RESET_COLOR]);
+            attr_set(CRT_colors[RESET_COLOR] & ~A_COLOR, PAIR_NUMBER(CRT_colors[RESET_COLOR]), NULL);
          RichString_delete(&item);
          line++;
       }

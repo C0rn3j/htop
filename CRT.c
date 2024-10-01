@@ -1151,9 +1151,9 @@ IGNORE_WCASTQUAL_END
 void CRT_done(void) {
    int resetColor = CRT_colors ? CRT_colors[RESET_COLOR] : CRT_colorSchemes[COLORSCHEME_DEFAULT][RESET_COLOR];
 
-   attron(resetColor);
+   attr_on(resetColor, NULL);
    mvhline(LINES - 1, 0, ' ', COLS);
-   attroff(resetColor);
+   attr_off(resetColor, NULL);
    refresh();
 
    if (CRT_retainScreenOnExit) {
@@ -1194,13 +1194,36 @@ void CRT_enableDelay(void) {
 
 void CRT_setColors(int colorScheme) {
    CRT_colorScheme = colorScheme;
-
-   for (short int i = 0; i < 8; i++) {
-      for (short int j = 0; j < 8; j++) {
+   for (short int i = 0; i <= 8; i++) {
+      for (short int j = 0; j <= 8; j++) {
          if (ColorIndex(i, j) != ColorIndexGrayBlack && ColorIndex(i, j) != ColorIndexWhiteDefault) {
             short int bg = (colorScheme != COLORSCHEME_BLACKNIGHT) && (j == 0) ? -1 : j;
             init_pair(ColorIndex(i, j), i, bg);
-         }
+//#define Black   COLOR_BLACK
+//#define Red     COLOR_RED
+//#define Green   COLOR_GREEN
+//#define Yellow  COLOR_YELLOW
+//#define Blue    COLOR_BLUE
+//#define Magenta COLOR_MAGENTA
+//#define Cyan    COLOR_CYAN
+//#define White   COLOR_WHITE
+        }
+			}
+	 }
+   for (short int i = 0; i <= 8; i++) {
+      for (short int j = 0; j <= 8; j++) {
+            for (short int k = 0; k <= 8; k++) {
+				   	// 1000 magic value used elsewhere, currently we have just 116, so unless we add 840 theme colors, this is fine
+                // 1000
+								//    ^ existing foreground
+								//   ^  existing background
+								//  ^   new background - action color (5) - dead process, new process, search, select and wahtevre the fifth one was
+
+				      fprintf(stderr, "PAIRING_CREATE before_fg_color=%d; before_bg_color=%d; passed_bg_color=%d; numero=%d \n", i, (j*10), (k*100), (1000 + i + (j*10) + (k*100)) );
+
+               init_extended_pair(1000 + i + (j*10) + (k*100), i, k); // Invert colors for now
+            }
+//         init_pair(ColorIndex(i+100, j+100), i, bg);
       }
    }
 

@@ -62,8 +62,8 @@ void RichString_rewind(RichString* this, int count) {
    RichString_setLen(this, this->chlen - count);
 }
 
-void RichString_setAttr_preserveWithStandout(RichString* this, int attrs) {
-   RichString_setAttrn_preserveWithStandout(this, attrs, 0, this->chlen - 1);
+void RichString_setAttr_preserveWithStandout(RichString* this, attr_t attrs, int pair, void *opts) {
+   RichString_setAttrn_preserveWithStandout(this, attrs, pair, opts, 0, this->chlen - 1);
 }
 
 #ifdef HAVE_LIBNCURSESW
@@ -164,39 +164,92 @@ inline void RichString_setAttrn(RichString* this, int attrs, int start, int char
    }
 }
 
-void RichString_setAttrn_preserveWithStandout(RichString* this, int attrs, int start, int finish) {
+void RichString_setAttrn_preserveWithStandout(RichString* this, attr_t attrs, int pair, void *opts, int start, int finish) {
    finish = CLAMP(finish, 0, this->chlen - 1);
 
-   // Extract the foreground and background color indexes from the passed attrs
-   short passed_color_pair_number = (short)PAIR_NUMBER(attrs);
-   short passed_fg_color = -1, passed_bg_color = -1;
+   // Extract the foreground and background color indexes from the passed pair
+   int passed_color_pair_number = (int)pair;
+   int passed_fg_color = -1, passed_bg_color = -1;
+   int passed_bg_color_R = -1, passed_bg_color_G = -1, passed_bg_color_B = -1;
+   int passed_fg_color_R = -1, passed_fg_color_G = -1, passed_fg_color_B = -1;
+
+
+   int before_fg_color = 0, before_bg_color = 0;
+   int before_fg_color_R = -1, before_fg_color_G = -1, before_fg_color_B = -1;
+
    if (passed_color_pair_number != 0) {
-      pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
+      extended_pair_content(passed_color_pair_number, &passed_fg_color, &passed_bg_color);
    }
 
+
    cchar_t* ch = this->chptr + start;
+	 extended_color_content(passed_bg_color, &passed_bg_color_R, &passed_bg_color_G, &passed_bg_color_B);
+   fprintf(stderr, "Passed BackGround RGB (color 201): R=%d, G=%d, B=%d REAL=%d \n", passed_bg_color_R, passed_bg_color_G, passed_bg_color_B, passed_bg_color);
+	 extended_color_content(passed_bg_color, &passed_bg_color_R, &passed_bg_color_G, &passed_bg_color_B);
+   fprintf(stderr, "Passed ForeGround RGB (color 201): R=%d, G=%d, B=%d\n", passed_fg_color_R, passed_fg_color_G, passed_fg_color_B);
+	 extended_color_content(before_fg_color, &before_fg_color_R, &before_fg_color_G, &before_fg_color_B);
+    fprintf(stderr, "Before ForeGround RGB (color 200): R=%d, G=%d, B=%d\n", before_fg_color_R, before_fg_color_G, before_fg_color_B);
+
+   init_extended_color(201, passed_bg_color_R, passed_bg_color_G, passed_bg_color_B);
    for (int i = start; i <= finish; i++) {
       // Extract foreground and background color indexes from the current char
-      short currentCharPairNum = (short)PAIR_NUMBER(ch->attr);
-      short before_fg_color = -1, before_bg_color = -1;
-      if (currentCharPairNum != 0) {
-         pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
-      }
+      int currentCharPairNum = PAIR_NUMBER(ch->attr);
+      before_fg_color = 0, before_bg_color = 0;
+      extended_pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
+			if (before_bg_color == -1) before_bg_color = 0;
+//      if (currentCharPairNum != 0) {
+//         extended_pair_content(currentCharPairNum, &before_fg_color, &before_bg_color);
+//      }
+      // If we have a colored space, reset it to the default colorpair
+//      if (currentCharPairNum != 0 && ch->chars[0] == L' ') {
+//         ch->attr = 0;
+//         before_fg_color, before_bg_color, currentCharPairNum = 0;
+//      }
+
+  //    init_extended_color(200, before_fg_color_R, before_fg_color_G, before_fg_color_B);
+	//#define Black   COLOR_BLACK
+  //#define Red     COLOR_RED
+  //#define Green   COLOR_GREEN
+  //#define Yellow  COLOR_YELLOW
+  //#define Blue    COLOR_BLUE
+  //#define Magenta COLOR_MAGENTA
+  //#define Cyan    COLOR_CYAN
+  //#define White   COLOR_WHITE
+
+				   	// 1000 magic value used elsewhere, currently we have just 116, so unless we add 840 theme colors, this is fine
+                // 1000
+								//    ^ existing foreground
+								//   ^  existing background
+								//  ^   new background - action color (5) - dead process, new process, search, select and wahtevre the fifth one was
+
+      int colorBGOverride = 1000 + before_fg_color + (before_bg_color*10) + (passed_bg_color*100);
+       int after_fg_color = -1, after_bg_color = -1;
+      extended_pair_content(colorBGOverride, &after_fg_color, &after_bg_color);
+
+//      init_extended_pair(4000, 200, passed_bg_color);
+//      attr_set(0, 4000, NULL);
+			//attr_set(0, 62, NULL);
+			//ColorPair(999, pair)
 
       // TODO: When text color matches higlight, the resulting STANDOUT is the same as on default text,
       //       so we at least set italics
-      chtype attrToPass = A_STANDOUT;
-      if (before_fg_color == passed_bg_color) {
-         attrToPass |= A_ITALIC;
-      }
+//      chtype attrToPass = A_STANDOUT;
       // If current char is not a space and its ColorPair Index is not the default 0,
       //    apply our own attrToPass with STANDOUT + optionally ITALICS,
-      //    instead of the passed attrs, which has the BG highlight color
-      ch->attr = (ch->chars[0] != L' ' && currentCharPairNum != 0)
-                  ? (ch->attr | attrToPass)
-                  : (unsigned int)attrs;
+      //    instead of the passed pair, which has the BG highlight color
+//      ch->attr = attrs;
+      ch->ext_color = currentCharPairNum != 0
+                  ?  colorBGOverride
+                  :  colorBGOverride;
+//      ch->attr = attrs;
+      //ch->attr = (ch->chars[0] != L' ' && currentCharPairNum != 0)
+      //            ? (ch->attr | A_STANDOUT)
+      //            : (unsigned int)pair;
+      fprintf(stderr, "PAIRING before_fg_color=%d; before_bg_color=%d; passed_bg_color=%d; numero=%d \n", before_fg_color, before_bg_color,passed_bg_color, colorBGOverride );
+      fprintf(stderr, "PAIRING after_fg_color=%d;  after_bg_color=%d;                      numero=%d \n\n", after_fg_color, after_bg_color, colorBGOverride );
       ch++;
    }
+
 }
 
 void RichString_appendChr(RichString* this, int attrs, char c, int count) {
